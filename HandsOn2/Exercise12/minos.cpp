@@ -34,7 +34,7 @@ void minos()
     RooRealVar dm2("dm2", "Delta m^2", 0.0024, 0.0001, 0.01);
 
     // Create the oscillation probably
-    RooFormulaVar prob_osc("prob_osc", "Oscillation Probability", "1 - @0*sin(1.267*@1/@2)^2", RooArgSet(mixing, dm2, energy));
+    RooFormulaVar prob_osc("prob_osc", "Oscillation Probability", "1 - @0*sin(1.267*730*@1/@2)^2", RooArgSet(mixing, dm2, energy));
 
     // Create final PDF of the energy distribution of oscillated neutrino
     RooGenericPdf model{"model", "model", "@0*@1", RooArgSet(prob_osc, func_noosc)};
