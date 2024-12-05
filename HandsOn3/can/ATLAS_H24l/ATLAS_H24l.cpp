@@ -32,10 +32,14 @@
 #include <RooSimultaneous.h>
 #include <RooPolynomial.h>
 #include <RooCBShape.h>
-#include "/home/can/root/tutorials/roostats/StandardProfileLikelihoodDemo.C"
+#include <RooStats/FeldmanCousins.h>
+#include </home/can/root/tutorials/roostats/StandardProfileLikelihoodDemo.C>
+#include </home/can/root/tutorials/roostats/StandardFeldmanCousinsDemo.C>
+#include </home/can/root/tutorials/roostats/StandardHypoTestDemo.C>
 
 using namespace RooFit;
 using namespace RooStats;
+using namespace std;
 
 int main(int argc, char **argv)
 {
@@ -118,15 +122,75 @@ int main(int argc, char **argv)
     canvas2->SaveAs("profileLikelihood.pdf");
 
 
-    TCanvas *canvas3 = new TCanvas("canvas2", "Likeliehood plt Hmass", 800, 600);
 
-    ProfileLikelihoodCalculator plc2(*data, mc_mass);
-    plc2.SetConfidenceLevel(0.90);
-    LikelihoodInterval* interval2 = plc2.GetInterval();
-    LikelihoodIntervalPlot plot2(interval2);
-    plot2.SetRange(123, 126);
-    plot2.Draw();
-    canvas3->SaveAs("profileLikelihoodMass.pdf");
+    RooDataSet* data_mass = (RooDataSet*)data->reduce(RooArgSet(x));
+    FeldmanCousins fc(*data_mass, mc_mass);
+
+    double cl = 0.90;
+
+    fc.UseAdaptiveSampling(true);
+    fc.FluctuateNumDataEntries(false);
+    fc.SetNBins(100); 
+    fc.SetConfidenceLevel(cl);
+    // get interval
+    PointSetInterval *interval2 = (PointSetInterval*)fc.GetInterval();
+
+
+
+
+
+    // print interval
+    interval2->SetConfidenceLevel(cl);
+    RooRealVar *firstPOI = (RooRealVar *)mc_mass.GetParametersOfInterest()->first();
+    cout << cl*100 << "% interval on " << firstPOI->GetName() << " is : [" << interval2->LowerLimit(*firstPOI) << ", " << interval2->UpperLimit(*firstPOI) << "] " << endl;
+
+
+    // Hypothesis Test
+
+
+    
+
+    RooRealVar mu("mu", "mu", 1, 0, 1);
+    w.import(mu);
+    w.var("mu")->setConstant(true);
+    RooFormulaVar nsig_scaled("nsig_scaled", "nsignal * mu", RooArgList(nsignal, mu));
+    RooAddPdf model_sb("model_sb", "model_sb", RooArgList(smodel, bmodel), RooArgList(nsig_scaled, nbackground));
+    RooFitResult* result_sb = model_sb.fitTo(*data, Save(true));
+    result_sb->Print("v");
+
+    w.import(model_sb);
+
+    // //plot and safe the fit
+    // TCanvas *canvas_sb = new TCanvas("canvas_sb", "Higgs stff", 800, 600);
+    // RooPlot* frame_sb = x.frame();
+    // data->plotOn(frame_sb);
+    // model_sb.plotOn(frame_sb);
+    // frame_sb->Draw();
+    // canvas->SaveAs("invMass_sb.pdf");
+
+
+    w.var("mu")->setConstant(false);
+
+    ModelConfig mc_sb("ModelConfig_sb", &w);
+    mc_sb.SetPdf(model_sb);
+    mc_sb.SetParametersOfInterest(mu);
+    mc_sb.SetObservables(x);
+    w.defineSet("nuisParams_sb", RooArgSet(nsignal,nbackground,a0,a1));
+    mc_sb.SetNuisanceParameters(*w.set("nuisParams_sb"));
+    mc_sb.SetSnapshot(mu);
+
+    ProfileLikelihoodCalculator plc_sb(*data, mc_sb);
+
+
+
+    w.var("mu")->setVal(0);
+    plc_sb.SetNullParameters(*w.var("mu"));
+    HypoTestResult* hypotest = plc_sb.GetHypoTest();
+    double alpha_value = hypotest->NullPValue();
+    double significance_value = hypotest->Significance();
+
+    cout << "p-value: " << alpha_value << endl;
+    cout << "significance: " << significance_value << endl;
 
 
     return 0;
