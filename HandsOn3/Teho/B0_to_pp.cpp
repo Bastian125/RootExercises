@@ -16,7 +16,7 @@
 #include "RooSimultaneous.h"
 using namespace RooFit;
 
-void B0_to_pp_TheosEIGENTUM()
+void B0_to_pp()
  {
 
     // Part 1 //
@@ -59,7 +59,7 @@ void B0_to_pp_TheosEIGENTUM()
 
     RooHist *resid = frame1->residHist(); // get residuals
     RooHist *pull = frame1->pullHist(); // get pulls
-
+    
     frame2->addPlotable(resid, "P");
     frame3->addPlotable(pull, "P");
 
@@ -107,7 +107,7 @@ void B0_to_pp_TheosEIGENTUM()
 
     RooDataSet combData("combData","combined data", RooArgSet(x,y), Index(sample), Import({{"physics", &data}, {"control", data_ctl}}) );
     RooSimultaneous simPdf("simPdf", "simultaneous pdf", {{"physics", &model}, {"control", &model_ctl}}, sample);
-    RooFitResult* fitResult{simPdf.fitTo(combData, PrintLevel(-1), Save(), PrintLevel(-1))};
+    RooFitResult* fitResult{simPdf.fitTo(combData, PrintLevel(-1), Save(), PrintLevel(-1))}; 
     fitResult->Print();
 
     RooPlot *frame5 = x.frame(Title("Physics sample"));
@@ -129,3 +129,4 @@ void B0_to_pp_TheosEIGENTUM()
     frame6->Draw();
     c4->SaveAs("output/simultaneous_fit.pdf");
 }
+ 
